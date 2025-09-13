@@ -1,0 +1,108 @@
+name: Deploy tairo
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: true
+
+jobs:
+  # JOB to detect changes in subfolders
+  changes:
+    name: Check for changes
+    runs-on: ubuntu-latest
+    # Set job outputs to values from filter step
+    outputs:
+      demo: ${{ steps.filter.outputs.demo }}
+      shared: ${{ steps.filter.outputs.shared }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          # Use context to get the branch where commits were pushed.
+          base: ${{ github.ref }}
+          filters: |
+            demo:
+              - '.demo/**'
+            shared:
+              - '.github/env/**'
+              - '.github/workflows/deploy.yml'
+              - 'layers/**'
+              - 'tairo-component-meta/**'
+              - 'Dockerfile'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'tsconfig.json'
+
+  build-demo:
+    name: Build Tairo demo
+    needs: changes
+    if: ${{ needs.changes.outputs.shared == 'true' || needs.changes.outputs.demo == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        timeout-minutes: 30
+        with:
+          pull: true
+          push: true
+          context: .
+          target: demo
+          cache-from: type=registry,ref=digisquad/cssninja.tairo-demo:cache
+          cache-to: type=registry,ref=digisquad/cssninja.tairo-demo:cache,mode=max
+          tags: digisquad/cssninja.tairo-demo:latest
+
+  deploy-demo:
+    name: Deploy Tairo demo
+    needs: build-demo
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+      - name: Prepare
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: mkdir -p ${{ secrets.HOST_DIRECTORY }}
+
+      - name: Prepare .env file
+        shell: bash
+        run: |
+          echo "PUBLIC_HOST=\"${{ secrets.PUBLIC_HOST }}\"" >> .github/env/.env
+          echo "NUXT_PUBLIC_SITE_URL=\"${{ secrets.NUXT_PUBLIC_SITE_URL }}\"" >> .github/env/.env
+          echo "NUXT_PUBLIC_MAPBOX_TOKEN=\"${{ secrets.MAPBOX_ACCESS_TOKEN }}\"" >> .github/env/.env
+
+      - name: Publish
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: .github/env/docker-compose.yml,.github/env/.env
+          target: ${{ secrets.HOST_DIRECTORY }}
+          strip_components: 2
+
+      - name: Deploy
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.HOST_DIRECTORY }}
+            docker compose pull
+            docker compose up -d --force-recreate --remove-orphans
