@@ -118,9 +118,9 @@ const saveUser = async () => {
     await useCustomFetch(`/users/${userId}`, {
       method: 'PATCH',
       body: payload,
-    })
+      })
 
-    toaster.add({
+      toaster.add({
       title: 'Sucesso',
       description: 'Usuário atualizado com sucesso!',
       icon: 'ph:check-circle-fill',
@@ -130,10 +130,10 @@ const saveUser = async () => {
     router.push('/dashboard/clients')
   } catch (error: any) {
     console.error('Erro ao salvar usuário:', error)
-    toaster.add({
+        toaster.add({
       title: 'Erro',
       description: error.message || 'Erro ao salvar alterações',
-      icon: 'lucide:alert-triangle',
+          icon: 'lucide:alert-triangle',
       duration: 3000,
     })
   } finally {
@@ -174,7 +174,7 @@ const formatPhone = (value: string) => {
       <div v-else-if="user" class="space-y-8">
         <!-- Header -->
         <div class="flex items-center justify-between">
-          <div>
+    <div>
             <BaseHeading as="h1" size="2xl" weight="bold">
               Editar Cliente
             </BaseHeading>
@@ -217,9 +217,9 @@ const formatPhone = (value: string) => {
                 <BaseParagraph size="xs" class="text-muted-400">
                   Créditos: R$ {{ Number(user.credits).toFixed(2) }}
                 </BaseParagraph>
-              </div>
-            </div>
-          </div>
+                        </div>
+                      </div>
+                    </div>
 
           <!-- Form -->
           <form @submit.prevent="saveUser" class="space-y-6">
@@ -230,28 +230,28 @@ const formatPhone = (value: string) => {
                   v-model="form.name"
                   placeholder="Digite o nome completo"
                   :error="!!errors.name"
-                />
-              </BaseField>
+                          />
+                        </BaseField>
 
               <!-- Email -->
               <BaseField label="Email (Opcional)" :error="errors.email">
                 <BaseInput
                   v-model="form.email"
-                  type="email"
+                            type="email"
                   placeholder="Digite o email"
                   :error="!!errors.email"
-                />
-              </BaseField>
+                          />
+                        </BaseField>
 
               <!-- CPF -->
               <BaseField label="CPF (Opcional)" :error="errors.document">
-                <BaseInput
+                          <BaseInput
                   v-model="form.document"
                   placeholder="000.000.000-00"
                   :error="!!errors.document"
                   @input="(e) => form.document = formatCPF(e.target.value)"
-                />
-              </BaseField>
+                          />
+                        </BaseField>
 
               <!-- Telefone -->
               <BaseField label="Telefone (Opcional)" :error="errors.phone">
@@ -260,9 +260,9 @@ const formatPhone = (value: string) => {
                   placeholder="(00) 00000-0000"
                   :error="!!errors.phone"
                   @input="(e) => form.phone = formatPhone(e.target.value)"
-                />
-              </BaseField>
-            </div>
+                            />
+                          </BaseField>
+                    </div>
 
             <!-- Telefone Validado -->
             <BaseField>
@@ -270,30 +270,30 @@ const formatPhone = (value: string) => {
                 v-model="form.phoneValidated"
                 label="Telefone validado"
                 color="primary"
-              />
-            </BaseField>
+                            />
+                          </BaseField>
 
             <!-- Actions -->
             <div class="flex items-center justify-end gap-3 pt-6 border-t border-muted-200 dark:border-muted-800">
-              <BaseButton
-                type="button"
-                variant="ghost"
+                    <BaseButton
+                      type="button"
+                      variant="ghost"
                 @click="router.push('/dashboard/clients')"
-              >
+                    >
                 Cancelar
-              </BaseButton>
-              <BaseButton
-                type="submit"
-                variant="primary"
+                    </BaseButton>
+                    <BaseButton
+                      type="submit"
+                      variant="primary"
                 :loading="saving"
                 :disabled="saving"
-              >
+                    >
                 Salvar Alterações
-              </BaseButton>
+                    </BaseButton>
             </div>
           </form>
         </BaseCard>
-      </div>
+        </div>
     </div>
   </div>
 </template>
